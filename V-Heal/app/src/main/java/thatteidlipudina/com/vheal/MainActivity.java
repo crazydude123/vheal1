@@ -20,6 +20,7 @@ public class MainActivity extends AppCompatActivity  {
 
     private static final int ERROR_DIALOG_REQUEST = 9001;
 
+    Button searchReport;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +29,14 @@ public class MainActivity extends AppCompatActivity  {
 
         setContentView(R.layout.activity_main);
 
+        searchReport =(Button) findViewById(R.id.searchPage);
+        searchReport.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i= new Intent(MainActivity.this, Search.class);
+                startActivity(i);
+            }
+        });
         if(isServicesOK()){
             init();
         }

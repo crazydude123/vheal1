@@ -40,7 +40,7 @@ public class Search extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        data1static = (EditText) findViewById(R.id.data1);
+
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
@@ -51,7 +51,7 @@ public class Search extends AppCompatActivity {
 
         mSearch = (ImageView) findViewById(R.id.fab);
 
-        pincodestatic1 = textPincode.getText().toString();
+
 
 
         list = new ArrayList<>();
@@ -59,9 +59,12 @@ public class Search extends AppCompatActivity {
         mSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fetchData b = new fetchData(Search.this);
+                final String pincodeWorks = textPincode.getText().toString();
+                System.out.println(pincodeWorks + "pincodeWorks");
+                Backgroundworker b = new Backgroundworker(Search.this);
 
-                b.execute();
+                data1static = (EditText) findViewById(R.id.data1);
+                b.execute("Search", pincodeWorks);
 
             }
         });

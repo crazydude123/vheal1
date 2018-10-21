@@ -23,6 +23,9 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+        <meta-data
+            android:name="preloaded_fonts"
+            android:resource="@array/preloaded_fonts" />
 
         <activity
             android:name="thatteidlipudina.com.vheal.MainActivity1"
@@ -41,6 +44,7 @@
         <activity android:name="thatteidlipudina.com.vheal.Ailments_or_Report" />
         <activity android:name="thatteidlipudina.com.vheal.Credit" />
         <activity android:name="thatteidlipudina.com.vheal.Search" />
+        <activity android:name="thatteidlipudina.com.vheal.doyouhaveapres" />
 
     </application>
 

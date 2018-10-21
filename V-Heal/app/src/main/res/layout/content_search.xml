@@ -13,7 +13,7 @@
         android:id="@+id/searchView"
         android:layout_width="395dp"
         android:layout_height="56dp"
-        android:hint="Enter pincode"
+        android:hint="Enter a pincode to get disease-stats on..."
         tools:layout_editor_absoluteX="8dp"
         tools:layout_editor_absoluteY="32dp" />
 

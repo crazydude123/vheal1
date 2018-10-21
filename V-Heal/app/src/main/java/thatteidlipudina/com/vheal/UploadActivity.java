@@ -1,17 +1,20 @@
 package thatteidlipudina.com.vheal;
 
         import android.Manifest;
+        import android.app.ProgressDialog;
         import android.content.Intent;
         import android.content.pm.PackageManager;
         import android.database.Cursor;
         import android.graphics.Bitmap;
         import android.net.Uri;
+        import android.os.AsyncTask;
         import android.os.Bundle;
         import android.provider.MediaStore;
         import android.support.annotation.NonNull;
         import android.support.v4.app.ActivityCompat;
         import android.support.v4.content.ContextCompat;
         import android.support.v7.app.AppCompatActivity;
+        import android.util.Base64;
         import android.util.Log;
         import android.util.SparseArray;
         import android.view.View;
@@ -20,11 +23,22 @@ package thatteidlipudina.com.vheal;
         import android.widget.ImageView;
         import android.widget.TextView;
         import android.widget.Toast;
-
         import net.gotev.uploadservice.MultipartUploadRequest;
         import net.gotev.uploadservice.UploadNotificationConfig;
 
+        import java.io.BufferedReader;
+        import java.io.BufferedWriter;
+        import java.io.ByteArrayOutputStream;
         import java.io.IOException;
+        import java.io.InputStream;
+        import java.io.InputStreamReader;
+        import java.io.OutputStream;
+        import java.io.OutputStreamWriter;
+        import java.net.HttpURLConnection;
+        import java.net.MalformedURLException;
+        import java.net.URL;
+        import java.net.URLEncoder;
+        import java.util.HashMap;
         import java.util.UUID;
 
         import com.google.android.gms.vision.Frame;
@@ -35,10 +49,14 @@ package thatteidlipudina.com.vheal;
 
         import thatteidlipudina.com.vheal.R;
 
+        import static thatteidlipudina.com.vheal.Ailments_or_Report.diseaseStaticAilments;
+        import static thatteidlipudina.com.vheal.Ailments_or_Report.patientNamestatic;
+        import static thatteidlipudina.com.vheal.Constants.UPLOAD_URL;
         import static thatteidlipudina.com.vheal.LoginActivity.usernamestatic;
         import static thatteidlipudina.com.vheal.MapActivity.pincodestatic;
 
 public class UploadActivity extends AppCompatActivity implements View.OnClickListener {
+    public static final String UPLOAD_KEY = "image";
 
     private static final String TAG = "UploadActivity";
     //Declaring views
@@ -89,7 +107,14 @@ public class UploadActivity extends AppCompatActivity implements View.OnClickLis
         buttonProceed.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                diseasestatic= diseaseText.getText().toString();
+                if((diseaseText.getText().toString().equals("null"))) {
+                    diseasestatic = diseaseStaticAilments;
+
+                }
+                else{
+                    System.out.println(diseaseStaticAilments + "hi");
+                    diseasestatic = diseaseText.getText().toString();
+                }
                 String type=  "disease";
                 Toast.makeText(UploadActivity.this,diseasestatic, Toast.LENGTH_SHORT).show();
                 Backgroundworker b= new Backgroundworker(UploadActivity.this);
@@ -121,7 +146,10 @@ public class UploadActivity extends AppCompatActivity implements View.OnClickLis
                             }
                         }
                     }
+                    String type="Upload";
                     txtView.setText(strBuilder.toString().substring(0, strBuilder.toString().length() - 1));
+                    Backgroundworker b= new Backgroundworker(UploadActivity.this);
+                    b.execute(type,strBuilder.toString());
                 }
             }
         });
@@ -143,7 +171,7 @@ public class UploadActivity extends AppCompatActivity implements View.OnClickLis
             String uploadId = UUID.randomUUID().toString();
 
             //Creating a multi part request
-            new MultipartUploadRequest(this, uploadId, Constants.UPLOAD_URL)
+            new MultipartUploadRequest(this, uploadId, UPLOAD_URL)
                     .addFileToUpload(path, "image") //Adding file
                     .addParameter("name", name) //Adding text parameter to the request
                     .setNotificationConfig(new UploadNotificationConfig())
@@ -153,6 +181,98 @@ public class UploadActivity extends AppCompatActivity implements View.OnClickLis
         } catch (Exception exc) {
             Toast.makeText(this, exc.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+
+    public String getStringImage(Bitmap bmp){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] imageBytes = baos.toByteArray();
+        String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        return encodedImage;
+    }
+
+
+    private void uploadImage(){
+        class UploadImage extends AsyncTask<Bitmap,Void,String> {
+
+            ProgressDialog loading;
+
+            RequestHandler rh = new RequestHandler();
+
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+                loading = ProgressDialog.show(UploadActivity.this, "Uploading...", null,true,true);
+            }
+
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                loading.dismiss();
+                Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            protected String doInBackground(Bitmap... params) {
+                Bitmap bitmap = params[0];
+                String uploadImage = getStringImage(bitmap);
+
+
+                try {
+                    URL url = new URL(UPLOAD_URL);
+                    HttpURLConnection htc = (HttpURLConnection) url.openConnection();
+                    if (htc == null) {
+                        Toast.makeText(UploadActivity.this, "connection failed", Toast.LENGTH_SHORT).show();
+                    }
+                    htc.setRequestMethod("POST");
+                    htc.setDoOutput(true);
+                    htc.setDoInput(true);
+                    OutputStream os = htc.getOutputStream();
+                    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                    String post_data = URLEncoder.encode("patientname", "UTF-8") + "=" + URLEncoder.encode(patientNamestatic, "UTF-8") + "&"
+                            + URLEncoder.encode("image", "UTF-8") + "=" + URLEncoder.encode(uploadImage, "UTF-8");
+                    bw.write(post_data);
+                    bw.flush();
+                    bw.close();
+                    os.close();
+                    InputStream is = htc.getInputStream();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(is, "iso-8859-1"));
+                    String result = "";
+                    String line = "";
+                    while ((line = br.readLine()) != null) {
+                        result += line;
+                    }
+                    br.close();
+                    is.close();
+                    htc.disconnect();
+                    return result;
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+
+
+
+
+
+
+
+//                HashMap<String,String> data = new HashMap<>();
+//                data.put(UPLOAD_KEY, uploadImage);
+//
+//                String result = rh.sendPostRequest(UPLOAD_URL,data);
+
+//                return result;
+                    return null;
+            }
+        }
+
+        UploadImage ui = new UploadImage();
+        ui.execute(bitmap);
     }
 
 
@@ -240,7 +360,7 @@ public class UploadActivity extends AppCompatActivity implements View.OnClickLis
             showFileChooser();
         }
         if (v == buttonUpload) {
-            uploadMultipart();
+            uploadImage();
         }
     }
 
